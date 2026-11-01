@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% block title %}ADBMS Interactive Systems Lab{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-2xl p-6 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-indigo-900/50">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-400 text-slate-950">
+                    INTERACTIVE LAB
+                </span>
+                <span class="text-xs text-indigo-200">Advanced Database Systems Core Modules</span>
+            </div>
+            <h1 class="text-2xl font-extrabold tracking-tight mt-1">ADBMS Research & Verification Lab</h1>
+            <p class="text-xs text-slate-300 mt-1 max-w-2xl">
+                Directly verify and test Distributed Concurrency Control (Strict 2PL), Wait-For Graph Deadlock Detection & Resolution, and Write-Ahead Log Crash Recovery.
+            </p>
+        </div>
+    </div>
+
+    <!-- 3 Core ADBMS Demonstration Panels -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Panel 1: Distributed Lock Manager (DLM) & Strict 2PL -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div class="flex items-center space-x-2">
+                    <div class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center">
+                        <i data-lucide="lock" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-900">1. Distributed Lock Manager (Strict 2PL)</h2>
+                        <span class="text-[10px] text-slate-400 font-mono">Shared (S) vs Exclusive (X) Locks</span>
+                    </div>
+                </div>
+                <form action="{{ url_for('adbms.clear_locks') }}" method="POST">
+                    <button type="submit" class="text-[10px] text-rose-600 hover:text-rose-800 font-semibold px-2 py-1 rounded bg-rose-50 border border-rose-200">
+                        Release All Locks
+                    </button>
+                </form>
+            </div>
+
+            <!-- Manual Lock Acquisition Form -->
+            <form action="{{ url_for('adbms.acquire_lock') }}" method="POST" class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3 text-xs">
+                <span class="font-bold text-slate-700 block text-[11px]">Test Lock Acquisition:</span>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-[10px] text-slate-500 mb-0.5">Transaction ID</label>
+                        <input type="text" name="tx_id" value="TX-TEST-01" required class="w-full bg-white border border-slate-300 rounded px-2 py-1 font-mono text-[11px]">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 mb-0.5">Resource ID</label>
+                        <input type="text" name="resource_id" value="acc:ACC-1001" required class="w-full bg-white border border-slate-300 rounded px-2 py-1 font-mono text-[11px]">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 mb-0.5">Lock Type</label>
+                        <select name="lock_type" class="w-full bg-white border border-slate-300 rounded px-2 py-1 font-mono text-[11px]">
+                            <option value="X">Exclusive (X) [Write]</option>
+                            <option value="S">Shared (S) [Read]</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-1.5 rounded-lg text-xs transition">
+                    Acquire Lock via DLM
+                </button>
+            </form>
+
+            <!-- Active Locks Table -->
+            <div class="space-y-2">
+                <span class="text-xs font-bold text-slate-700 flex items-center justify-between">
+                    <span>Active Lock Registry (global_locks)</span>
+                    <span class="text-[10px] font-mono text-slate-400">{{ active_locks|length }} Active</span>
+                </span>
+                <div class="overflow-x-auto max-h-48 overflow-y-auto">
+                    <table class="min-w-full divide-y divide-slate-100 text-xs font-mono">
+                        <thead class="sticky top-0 bg-white">
+                            <tr class="text-slate-400 text-left text-[10px] uppercase">
+                                <th class="py-1">Resource</th>
+                                <th class="py-1">Tx ID</th>
+                                <th class="py-1">Mode</th>
+                                <th class="py-1 text-right">Age</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-[11px]">
+                            {% for l in active_locks %}
+                            <tr>
+                                <td class="py-1.5 font-bold text-slate-800">{{ l.resource_id }}</td>
+                                <td class="py-1.5 text-sky-700">{{ l.tx_id }}</td>
+                                <td class="py-1.5">
+                                    <span class="px-1.5 py-0.2 rounded font-bold text-[10px] {% if l.lock_type == 'X' %}bg-rose-100 text-rose-800{% else %}bg-sky-100 text-sky-800{% endif %}">
+                                        {{ l.lock_type }}
+                                    </span>
+                                </td>
+                                <td class="py-1.5 text-right text-slate-400">{{ l.duration_sec }}s</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="py-4 text-center text-slate-400 font-sans text-xs">No active locks held currently.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 2: Deadlock Management & Wait-For Graph (WFG) -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div class="flex items-center space-x-2">
+                    <div class="w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center">
+                        <i data-lucide="git-pull-request" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-900">2. Deadlock Management (Wait-For Graph)</h2>
+                        <span class="text-[10px] text-slate-400 font-mono">DFS Cycle Detection & Victim Selection</span>
+                    </div>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold font-mono
+                    {% if wfg_state.has_deadlock %}bg-rose-100 text-rose-800 border border-rose-300 badge-pulse
+                    {% else %}bg-emerald-100 text-emerald-800{% endif %}">
+                    {% if wfg_state.has_deadlock %}DEADLOCK DETECTED!{% else %}NO DEADLOCK{% endif %}
+                </span>
+            </div>
+
+            <!-- Deadlock Simulation & Resolution Controls -->
+            <div class="flex items-center space-x-2 text-xs">
+                <form action="{{ url_for('adbms.simulate_deadlock') }}" method="POST" class="flex-1">
+                    <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2 rounded-xl transition flex items-center justify-center space-x-1">
+                        <i data-lucide="alert-octagon" class="w-3.5 h-3.5"></i>
+                        <span>Simulate Deadlock Cycle</span>
+                    </button>
+                </form>
+
+                <form action="{{ url_for('adbms.resolve_deadlock') }}" method="POST" class="flex-1">
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl transition flex items-center justify-center space-x-1">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                        <span>Run Detector & Resolve</span>
+                    </button>
+                </form>
+
+                <form action="{{ url_for('adbms.clear_wfg') }}" method="POST">
+                    <button type="submit" class="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-xl transition" title="Clear WFG">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Wait-For Graph Visual Display -->
+            <div class="bg-slate-900 p-4 rounded-xl text-white font-mono text-xs space-y-3">
+                <div class="text-[10px] text-slate-400 uppercase tracking-wider font-sans font-semibold">
+                    Graph State: {{ wfg_state.nodes|length }} Transactions &bull; {{ wfg_state.edges|length }} Waiting Edges
+                </div>
+
+                {% if wfg_state.has_deadlock %}
+                <div class="p-2.5 bg-rose-950/80 border border-rose-500/60 rounded-lg text-rose-200 space-y-1">
+                    <span class="font-bold block text-rose-400">Circular Wait Identified via DFS:</span>
+                    {% for c in wfg_state.cycles %}
+                    <div class="text-[11px] font-bold text-rose-300">&bull; {{ c }}</div>
+                    {% endfor %}
+                    <span class="text-[10px] text-slate-400 block font-sans">Resolution policy will select youngest transaction as victim, abort it, release its locks, and break the cycle.</span>
+                </div>
+                {% endif %}
+
+                <!-- Edges List -->
+                <div class="space-y-1 text-[11px]">
+                    {% for e in wfg_state.edges %}
+                    <div class="flex items-center space-x-2 text-slate-300 bg-slate-800/80 p-1.5 rounded">
+                        <span class="text-sky-400 font-bold">{{ e.from }}</span>
+                        <span class="text-slate-500">&rarr; waits for lock on <span class="text-amber-400">{{ e.resource }}</span> held by &rarr;</span>
+                        <span class="text-emerald-400 font-bold">{{ e.to }}</span>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3 text-slate-500 font-sans text-xs">
+                        No transactions waiting on locks. Graph is acyclic.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Panel 3: Crash Recovery & Write-Ahead Logging (WAL) Replay -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-3">
+            <div class="flex items-center space-x-2">
+                <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h2 class="text-sm font-bold text-slate-900">3. Distributed Crash Recovery & WAL Replay</h2>
+                    <span class="text-[10px] text-slate-400 font-mono">2PC In-Doubt Resolution & REDO / UNDO Engine</span>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <form action="{{ url_for('adbms.inject_crash') }}" method="POST">
+                    <button type="submit" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3 py-1.5 rounded-xl text-xs font-semibold transition">
+                        Inject Crash (In-Doubt Tx)
+                    </button>
+                </form>
+                <form action="{{ url_for('adbms.run_recovery') }}" method="POST">
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-xl text-xs font-bold shadow transition flex items-center space-x-1">
+                        <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                        <span>Execute Crash Recovery</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {% if recovery_status.in_doubt_transactions %}
+        <div class="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs space-y-1">
+            <div class="font-bold flex items-center space-x-1.5">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i>
+                <span>Incomplete / In-Doubt Transactions Requiring Recovery:</span>
+            </div>
+            {% for idt in recovery_status.in_doubt_transactions %}
+            <div class="font-mono text-[11px] text-amber-950">
+                &bull; <strong>{{ idt.tx_id }}</strong> (State: <code>{{ idt.state }}</code>) &rarr; Action: <strong>{{ idt.recommendation }}</strong>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center space-x-2">
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
+            <span>All distributed transactions in Coordinator and Branch WAL logs are fully resolved. System is consistent!</span>
+        </div>
+        {% endif %}
+
+        <!-- Side by Side Coordinator WAL vs Branch Participant WAL -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs font-mono">
+            <!-- Coordinator WAL -->
+            <div class="border border-slate-200 rounded-xl p-3 bg-slate-50">
+                <span class="font-bold text-slate-800 block mb-2 font-sans text-xs">Coordinator Central WAL (coordinator_wal)</span>
+                <div class="overflow-x-auto max-h-48 overflow-y-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-[11px]">
+                        <thead>
+                            <tr class="text-slate-500 text-left">
+                                <th class="py-1">Tx ID</th>
+                                <th class="py-1">State</th>
+                                <th class="py-1 text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            {% for w in recovery_status.coordinator_wal[:6] %}
+                            <tr>
+                                <td class="py-1 text-slate-700 truncate max-w-[120px]">{{ w.tx_id }}</td>
+                                <td class="py-1">
+                                    <span class="px-1.5 py-0.2 rounded font-bold text-[10px]
+                                        {% if w.state == 'COMMITTED' %}bg-emerald-100 text-emerald-800
+                                        {% elif w.state == 'ABORTED' %}bg-rose-100 text-rose-800
+                                        {% else %}bg-amber-100 text-amber-800{% endif %}">
+                                        {{ w.state }}
+                                    </span>
+                                </td>
+                                <td class="py-1 text-right font-bold text-slate-900">${{ "{:,.2f}".format(w.amount or 0.0) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Branch BR001 WAL -->
+            <div class="border border-slate-200 rounded-xl p-3 bg-slate-50">
+                <span class="font-bold text-slate-800 block mb-2 font-sans text-xs">Branch BR001 Participant WAL (branch_wal)</span>
+                <div class="overflow-x-auto max-h-48 overflow-y-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-[11px]">
+                        <thead>
+                            <tr class="text-slate-500 text-left">
+                                <th class="py-1">Tx ID</th>
+                                <th class="py-1">State</th>
+                                <th class="py-1">Account</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            {% for bw in recovery_status.branch_wal.get('BR001', [])[:6] %}
+                            <tr>
+                                <td class="py-1 text-slate-700 truncate max-w-[120px]">{{ bw.tx_id }}</td>
+                                <td class="py-1">
+                                    <span class="px-1.5 py-0.2 rounded font-bold text-[10px]
+                                        {% if bw.state == 'COMMITTED' %}bg-emerald-100 text-emerald-800
+                                        {% elif bw.state == 'ABORTED' %}bg-rose-100 text-rose-800
+                                        {% else %}bg-amber-100 text-amber-800{% endif %}">
+                                        {{ bw.state }}
+                                    </span>
+                                </td>
+                                <td class="py-1 text-slate-600">{{ bw.account_number }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

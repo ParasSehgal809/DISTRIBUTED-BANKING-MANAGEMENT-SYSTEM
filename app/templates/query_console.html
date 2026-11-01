@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Distributed Query Console & Optimizer{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Distributed Query Console</h1>
+            <p class="text-sm text-slate-500">Query Decomposition, Data Localization, Predicate Pushdown, and Distributed Materialization.</p>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span class="text-xs bg-sky-50 text-sky-800 border border-sky-200 px-3 py-1.5 rounded-xl font-mono flex items-center space-x-1">
+                <i data-lucide="cpu" class="w-3.5 h-3.5 text-sky-600"></i>
+                <span>Distributed Optimizer Active</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- Query Selection Form -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <form action="{{ url_for('query.query_console') }}" method="POST" class="space-y-4 text-xs">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="md:col-span-2">
+                    <label class="block font-semibold text-slate-700 mb-1">Select Distributed Query Pattern *</label>
+                    <select name="query_type" id="query_type" onchange="this.form.submit()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-sky-500">
+                        <option value="AGGREGATION" {% if selected_type == 'AGGREGATION' %}selected{% endif %}>
+                            1. Distributed Partitioned Aggregation (Global Liquidity & Averages)
+                        </option>
+                        <option value="HIGH_VALUE" {% if selected_type == 'HIGH_VALUE' %}selected{% endif %}>
+                            2. Horizontal Filter Pushdown (High-Value Accounts >= $X)
+                        </option>
+                        <option value="AUDIT" {% if selected_type == 'AUDIT' %}selected{% endif %}>
+                            3. Global Transaction Ledger Search across All Nodes
+                        </option>
+                    </select>
+                </div>
+
+                {% if selected_type == 'HIGH_VALUE' %}
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Min Balance ($ USD)</label>
+                    <input type="number" step="1000" name="min_balance" value="{{ min_balance }}" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono">
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 rounded-xl text-xs transition">
+                        Run Query
+                    </button>
+                </div>
+                {% elif selected_type == 'AUDIT' %}
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Keyword Filter</label>
+                    <input type="text" name="keyword" placeholder="e.g. Deposit, 2PC, ACC-1001" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs">
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 rounded-xl text-xs transition">
+                        Search Ledgers
+                    </button>
+                </div>
+                {% else %}
+                <div class="md:col-span-2 flex items-end">
+                    <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-5 py-2 rounded-xl text-xs transition">
+                        Re-Execute Global Reduction
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Execution Plan Visualizer & Network Stats -->
+    {% if result %}
+    <div class="space-y-6">
+        <!-- Performance Metrics Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-mono">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <span class="text-slate-400 font-sans font-semibold uppercase text-[10px]">Total Execution Time</span>
+                <span class="text-xl font-bold text-sky-700 mt-1 block">{{ result.total_execution_time_ms }} ms</span>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <span class="text-slate-400 font-sans font-semibold uppercase text-[10px]">Network Data Transferred</span>
+                <span class="text-xl font-bold text-emerald-700 mt-1 block">{{ result.total_bytes_transferred }} bytes</span>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <span class="text-slate-400 font-sans font-semibold uppercase text-[10px]">Optimization Strategy</span>
+                <span class="text-sm font-bold text-purple-700 mt-1 block truncate">{{ result.query_type }}</span>
+            </div>
+        </div>
+
+        <!-- Execution Plan Operator Tree -->
+        <div class="bg-slate-900 rounded-2xl p-6 shadow-xl border border-slate-800 text-white space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <div class="w-6 h-6 rounded bg-sky-500/20 text-sky-400 flex items-center justify-center">
+                        <i data-lucide="git-commit" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="font-bold text-sm text-white">Distributed Execution Plan & Operator Trace</h3>
+                </div>
+                <span class="text-xs text-slate-400 font-mono">Coordinator &bull; Parallel Branch Scan</span>
+            </div>
+
+            <div class="space-y-3 font-mono text-xs">
+                {% for s in result.execution_plan %}
+                <div class="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/80 flex items-start space-x-3">
+                    <span class="w-6 h-6 rounded-full bg-slate-700 text-sky-400 font-bold flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">
+                        {{ s.step }}
+                    </span>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between text-[11px] mb-1">
+                            <span class="text-amber-400 font-bold tracking-wide">{{ s.operator }} &bull; {{ s.node }}</span>
+                            <span class="text-slate-400">{{ s.duration_ms }} ms</span>
+                        </div>
+                        <div class="text-slate-300 font-sans text-xs">{{ s.description }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Materialized Output Table / Aggregation Breakdown -->
+        {% if selected_type == 'AGGREGATION' %}
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-5">
+            <h3 class="font-bold text-slate-900 text-sm">Partitioned Aggregation Breakdown by Branch Node</h3>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-100 text-xs font-mono">
+                    <thead>
+                        <tr class="text-slate-500 text-left font-semibold uppercase">
+                            <th class="py-2.5">Branch Node</th>
+                            <th class="py-2.5 text-center">Local Accounts</th>
+                            <th class="py-2.5 text-right">Local Partial Sum</th>
+                            <th class="py-2.5 text-right">Local Mean</th>
+                            <th class="py-2.5 text-right">Min Balance</th>
+                            <th class="py-2.5 text-right">Max Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for r in result.branch_reductions %}
+                        <tr>
+                            <td class="py-2.5 font-bold text-slate-900">{{ r.branch_name }} ({{ r.branch_id }})</td>
+                            <td class="py-2.5 text-center font-bold">{{ r.local_count }}</td>
+                            <td class="py-2.5 text-right text-emerald-700 font-bold">${{ "{:,.2f}".format(r.local_sum) }}</td>
+                            <td class="py-2.5 text-right">${{ "{:,.2f}".format(r.local_avg) }}</td>
+                            <td class="py-2.5 text-right text-slate-500">${{ "{:,.2f}".format(r.local_min) }}</td>
+                            <td class="py-2.5 text-right text-slate-800 font-semibold">${{ "{:,.2f}".format(r.local_max) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="border-t-2 border-slate-900 font-bold text-slate-900">
+                        <tr>
+                            <td class="py-3">GLOBAL REDUCTION (COORDINATOR):</td>
+                            <td class="py-3 text-center text-sky-700">{{ result.global_metrics.total_accounts }}</td>
+                            <td class="py-3 text-right text-emerald-600 text-sm">${{ "{:,.2f}".format(result.global_metrics.total_bank_liquidity) }}</td>
+                            <td class="py-3 text-right">${{ "{:,.2f}".format(result.global_metrics.average_account_balance) }}</td>
+                            <td class="py-3 text-right text-slate-500">${{ "{:,.2f}".format(result.global_metrics.minimum_balance) }}</td>
+                            <td class="py-3 text-right font-bold text-slate-900">${{ "{:,.2f}".format(result.global_metrics.maximum_balance) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        {% elif selected_type == 'HIGH_VALUE' %}
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+            <h3 class="font-bold text-slate-900 text-sm">Materialized Rows from Horizontal Fragments ({{ result.total_rows }} Accounts)</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-100 text-xs font-mono">
+                    <thead>
+                        <tr class="text-slate-500 text-left font-semibold uppercase">
+                            <th class="py-2">Account</th>
+                            <th class="py-2">Customer Name</th>
+                            <th class="py-2">Branch Node</th>
+                            <th class="py-2">Type</th>
+                            <th class="py-2 text-right">Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for a in result.results %}
+                        <tr>
+                            <td class="py-2 font-bold text-sky-700">{{ a.account_number }}</td>
+                            <td class="py-2 font-sans font-semibold text-slate-800">{{ a.customer_name }}</td>
+                            <td class="py-2">{{ a.branch_name }}</td>
+                            <td class="py-2">{{ a.account_type }}</td>
+                            <td class="py-2 text-right font-bold text-emerald-700">${{ "{:,.2f}".format(a.balance) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% elif selected_type == 'AUDIT' %}
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+            <h3 class="font-bold text-slate-900 text-sm">Search Results across Branch Ledgers ({{ result.total_records }} Events)</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-100 text-xs font-mono">
+                    <thead>
+                        <tr class="text-slate-500 text-left font-semibold uppercase">
+                            <th class="py-2">Tx ID</th>
+                            <th class="py-2">Node</th>
+                            <th class="py-2">Account</th>
+                            <th class="py-2">Type</th>
+                            <th class="py-2 font-sans">Description</th>
+                            <th class="py-2 text-right">Amount</th>
+                            <th class="py-2 text-right">Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for t in result.transactions %}
+                        <tr>
+                            <td class="py-2 font-semibold text-slate-700">{{ t.tx_id }}</td>
+                            <td class="py-2">{{ t.branch_id }}</td>
+                            <td class="py-2 font-bold">{{ t.account_number }}</td>
+                            <td class="py-2 font-semibold {% if t.type in ('CREDIT', 'DEPOSIT') %}text-emerald-600{% else %}text-rose-600{% endif %}">{{ t.type }}</td>
+                            <td class="py-2 font-sans text-slate-600">{{ t.description }}</td>
+                            <td class="py-2 text-right font-bold">${{ "{:,.2f}".format(t.amount) }}</td>
+                            <td class="py-2 text-right text-slate-400 font-sans text-[11px]">{{ t.timestamp }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

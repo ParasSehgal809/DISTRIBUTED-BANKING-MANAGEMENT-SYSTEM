@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Money Transfer & Two-Phase Commit (2PC){% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Money Transfer & Two-Phase Commit (2PC)</h1>
+            <p class="text-sm text-slate-500">Atomic money transfer with automatic detection of Intra-Branch vs Cross-Branch Distributed 2PC.</p>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span class="text-xs bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-xl font-medium flex items-center space-x-1.5">
+                <i data-lucide="shield-check" class="w-4 h-4 text-amber-600"></i>
+                <span>ACID Guaranteed &bull; Strict 2PL Protected</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- 2 Column Layout: Transfer Form + Protocol Explanation -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Transfer Form (1 Col) -->
+        <div class="lg:col-span-1 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-5">
+            <div class="flex items-center space-x-2 pb-3 border-b border-slate-100">
+                <div class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                </div>
+                <h2 class="text-base font-bold text-slate-900">Initiate Transfer</h2>
+            </div>
+
+            <form action="{{ url_for('transfer.transfer_page') }}" method="POST" class="space-y-4 text-xs">
+                <!-- Source Account -->
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Source Account (Debit) *</label>
+                    <select name="src_account" id="src_account" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-sky-500">
+                        <option value="">-- Choose Source Account --</option>
+                        {% for a in accounts %}
+                        <option value="{{ a.account_number }}" data-branch="{{ a.branch_id }}" data-balance="{{ a.balance }}">
+                            {{ a.account_number }} - {{ a.customer_name }} [{{ a.branch_name }}] (${{ "{:,.2f}".format(a.balance) }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Destination Account -->
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Destination Account (Credit) *</label>
+                    <select name="dest_account" id="dest_account" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-sky-500">
+                        <option value="">-- Choose Destination Account --</option>
+                        {% for a in accounts %}
+                        <option value="{{ a.account_number }}" data-branch="{{ a.branch_id }}">
+                            {{ a.account_number }} - {{ a.customer_name }} [{{ a.branch_name }}]
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Amount -->
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Transfer Amount ($ USD) *</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-mono">$</span>
+                        <input type="number" step="0.01" min="0.01" name="amount" required placeholder="500.00" class="w-full pl-7 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-sky-500 font-bold">
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Transfer Memo</label>
+                    <input type="text" name="description" value="Consulting Services Invoice" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-sky-500">
+                </div>
+
+                <!-- Failure Simulation / Injection Options (For Testing/Viva Demos) -->
+                <div class="p-3 bg-amber-50/70 rounded-xl border border-amber-200 space-y-2">
+                    <span class="text-[11px] font-bold text-amber-900 block flex items-center space-x-1">
+                        <i data-lucide="flask-conical" class="w-3.5 h-3.5 text-amber-600"></i>
+                        <span>ADBMS Failure Injection Mode:</span>
+                    </span>
+                    <select name="failure_simulation" class="w-full bg-white border border-amber-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800">
+                        <option value="">Normal 2PC Execution (Commit on Both)</option>
+                        <option value="FAIL_SRC_PREPARE">Simulate Source Node Failure on Prepare (Abort)</option>
+                        <option value="FAIL_DST_PREPARE">Simulate Destination Node Timeout on Prepare (Abort)</option>
+                        <option value="FAIL_COORDINATOR_CRASH">Simulate Coordinator Crash after Prepare (In-Doubt / Recovery Demo)</option>
+                    </select>
+                    <span class="text-[10px] text-amber-700 block">Use to test and demonstrate 2PC rollback and recovery properties to evaluators.</span>
+                </div>
+
+                <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2.5 rounded-xl shadow transition text-xs flex items-center justify-center space-x-1.5">
+                    <i data-lucide="play" class="w-4 h-4"></i>
+                    <span>Execute Transfer & Run Protocol</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Right 2 Cols: Protocol Trace or Concept Guide -->
+        <div class="lg:col-span-2 space-y-6">
+            {% if execution_result %}
+            <!-- Live 2PC Execution Result & Trace -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-5">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-mono font-bold text-slate-500">Transaction ID: {{ execution_result.result.tx_id }}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold
+                                {% if execution_result.result.decision == 'COMMITTED' or execution_result.result.success %}bg-emerald-100 text-emerald-800
+                                {% elif execution_result.result.decision == 'ABORTED' %}bg-rose-100 text-rose-800
+                                {% else %}bg-amber-100 text-amber-800{% endif %}">
+                                {{ execution_result.result.decision or ('COMMITTED' if execution_result.result.success else 'FAILED') }}
+                            </span>
+                        </div>
+                        <h2 class="text-lg font-bold text-slate-900 mt-1">
+                            {% if execution_result.is_cross_branch %}
+                            Two-Phase Commit (2PC) Protocol Execution Trace
+                            {% else %}
+                            Intra-Branch Local ACID Transaction
+                            {% endif %}
+                        </h2>
+                    </div>
+                    <span class="text-xs font-mono text-slate-400">Time: {{ execution_result.result.trace|length }} steps</span>
+                </div>
+
+                {% if execution_result.is_cross_branch %}
+                <!-- Step by step timeline -->
+                <div class="space-y-3 font-mono text-xs">
+                    {% for step in execution_result.result.trace %}
+                    <div class="p-3 rounded-xl border flex items-start space-x-3
+                        {% if step.status == 'SUCCESS' %}bg-emerald-50/70 border-emerald-200 text-emerald-950
+                        {% elif step.status == 'DANGER' %}bg-rose-50/70 border-rose-200 text-rose-950
+                        {% elif step.status == 'WARNING' %}bg-amber-50/70 border-amber-200 text-amber-950
+                        {% else %}bg-slate-50 border-slate-200 text-slate-800{% endif %}">
+                        
+                        <div class="flex-shrink-0 text-center font-bold text-[10px] px-2 py-1 rounded
+                            {% if step.status == 'SUCCESS' %}bg-emerald-200 text-emerald-800
+                            {% elif step.status == 'DANGER' %}bg-rose-200 text-rose-800
+                            {% elif step.status == 'WARNING' %}bg-amber-200 text-amber-800
+                            {% else %}bg-slate-200 text-slate-700{% endif %}">
+                            {{ step.phase }}
+                        </div>
+
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between text-[11px] mb-0.5">
+                                <span class="font-bold uppercase tracking-wider text-slate-500">{{ step.node }} &bull; {{ step.action }}</span>
+                                <span class="text-slate-400 font-sans text-[10px]">+{{ step.timestamp }}s</span>
+                            </div>
+                            <div class="font-sans text-xs font-medium">{{ step.details }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 text-xs">
+                    <p class="font-semibold text-sm">Intra-Branch Transfer Executed Locally:</p>
+                    <p class="mt-1">Both accounts reside within the same branch database node. The transfer was completed using a single local ACID transaction without requiring 2PC network rounds.</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- 2PC Concept & Protocol Lifecycle Architecture Card -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+                <div class="flex items-center space-x-2 pb-3 border-b border-slate-100">
+                    <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center">
+                        <i data-lucide="book-open" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-900 text-sm">How Two-Phase Commit (2PC) Operates in this System</h3>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <!-- Phase 1 -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                        <div class="flex items-center space-x-1.5 font-bold text-slate-900">
+                            <span class="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center text-[10px]">1</span>
+                            <span>Phase 1: Prepare Phase</span>
+                        </div>
+                        <ul class="list-disc list-inside space-y-1 text-slate-600 text-[11px]">
+                            <li>Coordinator writes <code>PREPARING</code> to <code>coordinator_wal</code>.</li>
+                            <li>Sends <code>PREPARE</code> request to debit branch and credit branch.</li>
+                            <li>Participants acquire Strict 2PL Exclusive Locks (X).</li>
+                            <li>Debit branch verifies funds (<code>balance >= amount</code>).</li>
+                            <li>Participants write <code>PREPARED</code> in <code>branch_wal</code>.</li>
+                            <li>Participants reply with <code>VOTE_COMMIT</code> or <code>VOTE_ABORT</code>.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Phase 2 -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                        <div class="flex items-center space-x-1.5 font-bold text-slate-900">
+                            <span class="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">2</span>
+                            <span>Phase 2: Commit / Abort Phase</span>
+                        </div>
+                        <ul class="list-disc list-inside space-y-1 text-slate-600 text-[11px]">
+                            <li>If all participants voted <code>COMMIT</code>: Coordinator durably writes <code>GLOBAL_COMMIT</code> to central WAL.</li>
+                            <li>If any voted <code>ABORT</code>: Coordinator writes <code>GLOBAL_ABORT</code>.</li>
+                            <li>Coordinator sends decision to all branch nodes.</li>
+                            <li>Branches update balances, append to local ledger, write to local WAL, and release locks.</li>
+                            <li>Coordinator logs transaction final state as <code>COMMITTED</code>.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-slate-900 text-slate-300 rounded-xl text-[11px] font-mono flex items-center justify-between">
+                    <span>Atomicity Invariant: All-or-Nothing across autonomous nodes</span>
+                    <span class="text-amber-400">Strict 2PL + WAL</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

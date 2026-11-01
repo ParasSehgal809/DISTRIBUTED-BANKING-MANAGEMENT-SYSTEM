@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Evaluate Loan {{ loan.loan_id }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <a href="{{ url_for('loan.list_loans') }}" class="text-xs text-sky-600 hover:underline">&larr; Loans Directory</a>
+                <span class="text-slate-300">/</span>
+                <span class="text-xs font-mono font-bold text-slate-700">{{ loan.loan_id }}</span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 mt-1">Distributed Credit Assessment</h1>
+            <p class="text-xs text-slate-500">Applicant: <strong>{{ customer.full_name }}</strong> ({{ customer.customer_id }}) &bull; Target Account: <span class="font-mono">{{ loan.account_number }}</span></p>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <span class="px-3 py-1.5 rounded-xl text-xs font-bold font-mono
+                {% if loan.status == 'APPROVED' %}bg-sky-100 text-sky-800
+                {% elif loan.status == 'DISBURSED' %}bg-emerald-100 text-emerald-800
+                {% elif loan.status == 'REJECTED' %}bg-rose-100 text-rose-800
+                {% else %}bg-amber-100 text-amber-800{% endif %}">
+                STATUS: {{ loan.status }}
+            </span>
+        </div>
+    </div>
+
+    <!-- 3 Metric Cards for Risk Evaluation -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <span class="text-slate-400 font-semibold uppercase tracking-wider block text-[10px]">Total Bankwide Holdings</span>
+            <span class="text-2xl font-bold text-emerald-600 font-mono mt-1 block">${{ "{:,.2f}".format(total_holdings) }}</span>
+            <span class="text-slate-500 text-[11px] mt-1 block">Aggregated across all branch DB fragments</span>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <span class="text-slate-400 font-semibold uppercase tracking-wider block text-[10px]">Credit Bureau Score</span>
+            <div class="flex items-baseline space-x-2 mt-1">
+                <span class="text-2xl font-bold text-slate-900 font-mono">{{ customer.credit_score }}</span>
+                <span class="text-[11px] font-semibold text-slate-500">/ 850</span>
+            </div>
+            <span class="text-slate-500 text-[11px] mt-1 block">KYC: {{ customer.kyc_status }} &bull; Tier: {{ customer.risk_rating }}</span>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <span class="text-slate-400 font-semibold uppercase tracking-wider block text-[10px]">Debt-to-Income Metric</span>
+            <span class="text-2xl font-bold text-slate-900 font-mono mt-1 block">{{ debt_to_income_ratio }}%</span>
+            <span class="text-[11px] font-bold mt-1 block {% if eligibility == 'RECOMMENDED' %}text-emerald-600{% else %}text-amber-600{% endif %}">
+                Decision: {{ eligibility }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Accounts across Branches Table -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+            <h3 class="text-sm font-bold text-slate-900">Distributed Query Output: All Accounts for {{ customer.full_name }}</h3>
+            <span class="text-xs font-mono text-slate-400">Total: {{ accounts|length }} Accounts</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-100 text-xs font-mono">
+                <thead>
+                    <tr class="text-slate-500 text-left font-semibold uppercase tracking-wider">
+                        <th class="py-2">Account Number</th>
+                        <th class="py-2">Branch Node</th>
+                        <th class="py-2">Type</th>
+                        <th class="py-2 text-right">Balance</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for a in accounts %}
+                    <tr>
+                        <td class="py-2 font-bold text-sky-700">{{ a.account_number }}</td>
+                        <td class="py-2">{{ a.branch_name }} ({{ a.branch_id }})</td>
+                        <td class="py-2">{{ a.account_type }}</td>
+                        <td class="py-2 text-right font-bold text-slate-900">${{ "{:,.2f}".format(a.balance) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Manager / Admin Action Form -->
+    {% if session['user']['role'] in ('ADMIN', 'BRANCH_MANAGER') %}
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+        <h3 class="text-sm font-bold text-slate-900">Loan Processing Decision</h3>
+
+        <form action="{{ url_for('loan.loan_action', loan_id=loan.loan_id) }}" method="POST" class="space-y-4 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Approved Amount ($ USD)</label>
+                    <input type="number" step="100" name="approved_amount" value="{{ loan.approved_amount or loan.requested_amount }}" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Officer Comments</label>
+                    <input type="text" name="comments" value="Approved after multi-branch collateral verification." class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-sans">
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3 pt-2">
+                {% if loan.status == 'PENDING' %}
+                <button type="submit" name="action" value="APPROVE" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl font-semibold shadow transition">
+                    Approve Loan
+                </button>
+                <button type="submit" name="action" value="REJECT" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2 rounded-xl font-semibold shadow transition">
+                    Reject Loan
+                </button>
+                {% elif loan.status == 'APPROVED' %}
+                <button type="submit" name="action" value="DISBURSE" class="bg-sky-600 hover:bg-sky-500 text-white px-5 py-2.5 rounded-xl font-bold shadow transition flex items-center space-x-1.5">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    <span>Disburse Funds into {{ loan.account_number }}</span>
+                </button>
+                {% else %}
+                <span class="text-slate-500 text-xs italic">Loan has reached final state: {{ loan.status }}</span>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

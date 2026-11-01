@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Loan Management & Distributed Evaluation{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Loan Management</h1>
+            <p class="text-sm text-slate-500">Distributed Credit Evaluation: Aggregates customer holdings across all branch nodes before approval.</p>
+        </div>
+        <a href="{{ url_for('loan.apply_loan') }}" class="inline-flex items-center space-x-1.5 bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow transition">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Apply for Loan</span>
+        </a>
+    </div>
+
+    <!-- Loans Table -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-100 text-xs">
+                <thead>
+                    <tr class="text-slate-500 text-left font-semibold uppercase tracking-wider">
+                        <th class="py-3">Loan ID</th>
+                        <th class="py-3">Applicant Name</th>
+                        <th class="py-3">Branch Node</th>
+                        <th class="py-3">Target Account</th>
+                        <th class="py-3 text-right">Requested</th>
+                        <th class="py-3 text-right">Approved</th>
+                        <th class="py-3">Status</th>
+                        <th class="py-3">Purpose</th>
+                        <th class="py-3 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-mono">
+                    {% for l in loans %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="py-3 font-bold text-sky-700">{{ l.loan_id }}</td>
+                        <td class="py-3 font-sans font-semibold text-slate-900">{{ l.full_name }}</td>
+                        <td class="py-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold
+                                {% if l.branch_id == 'BR001' %}bg-sky-100 text-sky-800
+                                {% elif l.branch_id == 'BR002' %}bg-emerald-100 text-emerald-800
+                                {% else %}bg-purple-100 text-purple-800{% endif %}">
+                                {{ l.branch_id }}
+                            </span>
+                        </td>
+                        <td class="py-3 text-slate-600">{{ l.account_number }}</td>
+                        <td class="py-3 text-right font-bold text-slate-900">${{ "{:,.2f}".format(l.requested_amount) }}</td>
+                        <td class="py-3 text-right font-bold text-emerald-700">
+                            {% if l.approved_amount %}${{ "{:,.2f}".format(l.approved_amount) }}{% else %}&mdash;{% endif %}
+                        </td>
+                        <td class="py-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold
+                                {% if l.status == 'APPROVED' %}bg-sky-100 text-sky-800
+                                {% elif l.status == 'DISBURSED' %}bg-emerald-100 text-emerald-800
+                                {% elif l.status == 'REJECTED' %}bg-rose-100 text-rose-800
+                                {% else %}bg-amber-100 text-amber-800{% endif %}">
+                                {{ l.status }}
+                            </span>
+                        </td>
+                        <td class="py-3 font-sans text-slate-600 truncate max-w-xs">{{ l.purpose }}</td>
+                        <td class="py-3 text-center font-sans">
+                            <a href="{{ url_for('loan.evaluate_loan', loan_id=l.loan_id) }}" class="inline-flex items-center space-x-1 text-sky-600 hover:text-sky-800 font-semibold">
+                                <span>Review &rarr;</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="py-6 text-center text-slate-400 font-sans">No loan applications recorded.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

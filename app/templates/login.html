@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Login - Role-Based Access Control{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto my-8 space-y-6">
+    <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200">
+        <div class="text-center space-y-2 pb-6 border-b border-slate-100">
+            <div class="w-12 h-12 rounded-xl bg-sky-500 text-white flex items-center justify-center mx-auto shadow-md">
+                <i data-lucide="shield-check" class="w-6 h-6"></i>
+            </div>
+            <h1 class="text-xl font-bold text-slate-900">Distributed Banking System</h1>
+            <p class="text-xs text-slate-500">Role-Based Access Control (RBAC) Authentication</p>
+        </div>
+
+        <form action="{{ url_for('auth.login', next=request.args.get('next')) }}" method="POST" class="mt-6 space-y-4 text-xs">
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Username or Email</label>
+                <input type="text" name="username" required value="admin" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-sky-500">
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Password</label>
+                <input type="password" name="password" required value="admin123" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-sky-500">
+            </div>
+
+            <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2.5 rounded-xl shadow transition text-xs flex items-center justify-center space-x-1.5">
+                <i data-lucide="log-in" class="w-4 h-4"></i>
+                <span>Sign In to Node</span>
+            </button>
+        </form>
+
+        <!-- 1-Click Quick Demo Role Switcher -->
+        <div class="mt-8 pt-6 border-t border-slate-100 space-y-3">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center">
+                1-Click Testing Profiles (RBAC Demo)
+            </span>
+            <div class="grid grid-cols-2 gap-2 text-[11px]">
+                <a href="{{ url_for('auth.quick_login', role='ADMIN') }}" class="p-2 rounded-lg bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100 text-center font-semibold transition">
+                    Admin
+                </a>
+                <a href="{{ url_for('auth.quick_login', role='BRANCH_MANAGER') }}" class="p-2 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100 text-center font-semibold transition">
+                    Branch Manager
+                </a>
+                <a href="{{ url_for('auth.quick_login', role='TELLER') }}" class="p-2 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 text-center font-semibold transition">
+                    Bank Teller
+                </a>
+                <a href="{{ url_for('auth.quick_login', role='CUSTOMER') }}" class="p-2 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 text-center font-semibold transition">
+                    Customer (Alice)
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Distributed Banking System{% endblock %} - ADBMS Project</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bank: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            800: '#0c4a6e',
+                            900: '#082f49',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .badge-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col text-slate-800">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand / Logo -->
+                <div class="flex items-center space-x-3">
+                    <a href="{{ url_for('admin.dashboard') }}" class="flex items-center space-x-2 text-white font-bold text-lg hover:text-sky-400 transition">
+                        <div class="w-9 h-9 rounded-lg bg-sky-500 flex items-center justify-center text-white shadow">
+                            <i data-lucide="network" class="w-5 h-5"></i>
+                        </div>
+                        <div class="leading-tight">
+                            <span class="block text-white font-bold tracking-tight">OmniBank <span class="text-xs bg-sky-500/30 text-sky-300 font-mono px-1.5 py-0.5 rounded ml-1 border border-sky-400/40">ADBMS</span></span>
+                            <span class="block text-[10px] text-slate-400 font-normal">Distributed Database System</span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Main Navigation Links -->
+                <nav class="hidden md:flex items-center space-x-1 text-sm font-medium">
+                    <a href="{{ url_for('admin.dashboard') }}" class="px-3 py-2 rounded-md hover:bg-slate-800 transition flex items-center space-x-1.5 text-slate-300 hover:text-white">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="{{ url_for('branch.list_branches') }}" class="px-3 py-2 rounded-md hover:bg-slate-800 transition flex items-center space-x-1.5 text-slate-300 hover:text-white">
+                        <i data-lucide="git-branch" class="w-4 h-4"></i>
+                        <span>Branches</span>
+                    </a>
+                    <a href="{{ url_for('customer.list_customers') }}" class="px-3 py-2 rounded-md hover:bg-slate-800 transition flex items-center space-x-1.5 text-slate-300 hover:text-white">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>Customers</span>
+                    </a>
+                    <a href="{{ url_for('account.list_accounts') }}" class="px-3 py-2 rounded-md hover:bg-slate-800 transition flex items-center space-x-1.5 text-slate-300 hover:text-white">
+                        <i data-lucide="credit-card" class="w-4 h-4"></i>
+                        <span>Accounts</span>
+                    </a>
+                    <a href="{{ url_for('transfer.transfer_page') }}" class="px-3 py-2 rounded-md bg-sky-600/20 text-sky-300 border border-sky-500/30 hover:bg-sky-600/30 transition flex items-center space-x-1.5">
+                        <i data-lucide="arrow-left-right" class="w-4 h-4 text-sky-400"></i>
+                        <span>Transfer & 2PC</span>
+                    </a>
+                    <a href="{{ url_for('loan.list_loans') }}" class="px-3 py-2 rounded-md hover:bg-slate-800 transition flex items-center space-x-1.5 text-slate-300 hover:text-white">
+                        <i data-lucide="banknote" class="w-4 h-4"></i>
+                        <span>Loans</span>
+                    </a>
+                    <a href="{{ url_for('query.query_console') }}" class="px-3 py-2 rounded-md hover:bg-slate-800 transition flex items-center space-x-1.5 text-slate-300 hover:text-white">
+                        <i data-lucide="database" class="w-4 h-4"></i>
+                        <span>Query Plan</span>
+                    </a>
+                    <a href="{{ url_for('adbms.lab_home') }}" class="px-3 py-2 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition flex items-center space-x-1.5">
+                        <i data-lucide="flask-conical" class="w-4 h-4 text-amber-400"></i>
+                        <span>ADBMS Lab</span>
+                    </a>
+                </nav>
+
+                <!-- RBAC Role Switcher & User Profile -->
+                <div class="flex items-center space-x-3">
+                    {% if session.get('user') %}
+                    <div class="flex items-center space-x-2">
+                        <div class="text-right hidden sm:block">
+                            <span class="block text-xs font-semibold text-white">{{ session['user']['username'] }}</span>
+                            <span class="inline-block text-[10px] font-mono uppercase px-1.5 py-0.2 rounded 
+                                {% if session['user']['role'] == 'ADMIN' %}bg-purple-900/60 text-purple-300 border border-purple-500/40
+                                {% elif session['user']['role'] == 'BRANCH_MANAGER' %}bg-blue-900/60 text-blue-300 border border-blue-500/40
+                                {% elif session['user']['role'] == 'TELLER' %}bg-emerald-900/60 text-emerald-300 border border-emerald-500/40
+                                {% else %}bg-slate-800 text-slate-300 border border-slate-700{% endif %}">
+                                {{ session['user']['role'] }} {% if session['user']['branch_id'] %}({{ session['user']['branch_id'] }}){% endif %}
+                            </span>
+                        </div>
+
+                        <!-- Role quick switcher dropdown -->
+                        <div class="relative group">
+                            <button class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-lg text-xs flex items-center space-x-1 border border-slate-700">
+                                <i data-lucide="shield-check" class="w-4 h-4 text-sky-400"></i>
+                                <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+                            </button>
+                            <div class="absolute right-0 mt-2 w-48 bg-slate-900 rounded-lg shadow-xl py-1 text-xs hidden group-hover:block border border-slate-700 z-50">
+                                <div class="px-3 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800">Switch RBAC Role</div>
+                                <a href="{{ url_for('auth.quick_login', role='ADMIN') }}" class="block px-3 py-1.5 text-slate-300 hover:bg-slate-800 hover:text-white flex items-center space-x-2">
+                                    <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+                                    <span>Admin (Full Access)</span>
+                                </a>
+                                <a href="{{ url_for('auth.quick_login', role='BRANCH_MANAGER') }}" class="block px-3 py-1.5 text-slate-300 hover:bg-slate-800 hover:text-white flex items-center space-x-2">
+                                    <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                                    <span>Branch Manager (BR001)</span>
+                                </a>
+                                <a href="{{ url_for('auth.quick_login', role='TELLER') }}" class="block px-3 py-1.5 text-slate-300 hover:bg-slate-800 hover:text-white flex items-center space-x-2">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                    <span>Teller (Front Desk)</span>
+                                </a>
+                                <a href="{{ url_for('auth.quick_login', role='CUSTOMER') }}" class="block px-3 py-1.5 text-slate-300 hover:bg-slate-800 hover:text-white flex items-center space-x-2">
+                                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                                    <span>Customer (Self Service)</span>
+                                </a>
+                                <div class="border-t border-slate-800 my-1"></div>
+                                <a href="{{ url_for('auth.logout') }}" class="block px-3 py-1.5 text-red-400 hover:bg-slate-800 flex items-center space-x-2">
+                                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                                    <span>Logout</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="text-xs bg-sky-600 hover:bg-sky-500 text-white px-3 py-2 rounded-md font-medium transition">
+                        Log In
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Flash Messages Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 w-full">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="space-y-2">
+                {% for category, message in messages %}
+                    <div class="p-3.5 rounded-lg text-sm flex items-start space-x-3 shadow-sm border
+                        {% if category == 'success' %}bg-emerald-50 text-emerald-900 border-emerald-200
+                        {% elif category == 'danger' %}bg-rose-50 text-rose-900 border-rose-200
+                        {% elif category == 'warning' %}bg-amber-50 text-amber-900 border-amber-200
+                        {% else %}bg-sky-50 text-sky-900 border-sky-200{% endif %}">
+                        <i data-lucide="{% if category == 'success' %}check-circle-2{% elif category == 'danger' %}alert-octagon{% elif category == 'warning' %}alert-triangle{% else %}info{% endif %}" 
+                           class="w-5 h-5 flex-shrink-0 mt-0.5 
+                           {% if category == 'success' %}text-emerald-600{% elif category == 'danger' %}text-rose-600{% elif category == 'warning' %}text-amber-600{% else %}text-sky-600{% endif %}"></i>
+                        <span class="flex-1 font-medium">{{ message }}</span>
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div>
+                <span class="font-semibold text-slate-700">Distributed Banking Management System</span> &bull; Advanced Database Management Systems (ADBMS) Project
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="flex items-center space-x-1 text-emerald-600 font-medium">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 badge-pulse"></span>
+                    <span>Backend: MySQL (4 Distributed Schemas)</span>
+                </span>
+                <span class="text-slate-400">|</span>
+                <span class="text-slate-500 font-mono text-[11px]">Strict 2PL &bull; 2PC &bull; WFG</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

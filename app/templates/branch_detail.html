@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}Node Inspection: {{ branch.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <a href="{{ url_for('branch.list_branches') }}" class="text-xs text-sky-600 hover:underline">&larr; All Branches</a>
+                <span class="text-slate-300">/</span>
+                <span class="text-xs font-mono font-bold text-slate-700">{{ branch.branch_id }}</span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 mt-1">{{ branch.name }}</h1>
+            <p class="text-xs text-slate-500 font-mono mt-0.5">MySQL Database: <span class="text-emerald-700 font-bold">{{ branch.mysql_database or branch.db_filename }}</span> &bull; Location: {{ branch.city }}</p>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <div class="text-right">
+                <span class="text-xs text-slate-400 uppercase tracking-wider block">Total Node Balance</span>
+                <span class="text-xl font-bold text-emerald-600">${{ "{:,.2f}".format(total_balance) }}</span>
+            </div>
+            {% if session['user']['role'] == 'ADMIN' %}
+            <form action="{{ url_for('branch.toggle_status', branch_id=branch.branch_id) }}" method="POST">
+                <button type="submit" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition
+                    {% if branch.status == 'ONLINE' %}bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100
+                    {% else %}bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100{% endif %}">
+                    {% if branch.status == 'ONLINE' %}Simulate Node Down{% else %}Bring Node Online{% endif %}
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Section 1: Accounts Horizontal Fragment -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+            <div>
+                <h2 class="text-base font-bold text-slate-900">1. Horizontal Fragment: Accounts Table</h2>
+                <p class="text-xs text-slate-500">Partition Predicate: <code>WHERE branch_id = '{{ branch.branch_id }}'</code></p>
+            </div>
+            <span class="text-xs font-mono bg-sky-50 text-sky-700 px-2 py-1 rounded font-semibold">{{ accounts|length }} Accounts</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-100 text-xs">
+                <thead>
+                    <tr class="text-slate-500 text-left font-semibold uppercase tracking-wider">
+                        <th class="py-2">Account Number</th>
+                        <th class="py-2">Customer ID</th>
+                        <th class="py-2">Type</th>
+                        <th class="py-2">Status</th>
+                        <th class="py-2 text-center">Version (OCC)</th>
+                        <th class="py-2 text-right">Balance</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-mono">
+                    {% for a in accounts %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="py-2.5 font-bold text-sky-700">
+                            <a href="{{ url_for('account.view_account', account_number=a.account_number) }}" class="hover:underline">
+                                {{ a.account_number }}
+                            </a>
+                        </td>
+                        <td class="py-2.5 text-slate-600">
+                            <a href="{{ url_for('customer.view_customer', customer_id=a.customer_id) }}" class="hover:underline">
+                                {{ a.customer_id }}
+                            </a>
+                        </td>
+                        <td class="py-2.5"><span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px]">{{ a.account_type }}</span></td>
+                        <td class="py-2.5"><span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">{{ a.status }}</span></td>
+                        <td class="py-2.5 text-center text-slate-500">{{ a.version }}</td>
+                        <td class="py-2.5 text-right font-bold text-slate-900">${{ "{:,.2f}".format(a.balance) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Section 2: Vertical Fragment: Financial & KYC Profiles -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+            <div>
+                <h2 class="text-base font-bold text-slate-900">2. Vertical Fragment: Customer Financial Profiles (customers_local)</h2>
+                <p class="text-xs text-slate-500">Vertically split from Central Coordinator demographics. Joined on <code>customer_id</code>.</p>
+            </div>
+            <span class="text-xs font-mono bg-purple-50 text-purple-700 px-2 py-1 rounded font-semibold">{{ profiles|length }} Profiles</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-100 text-xs">
+                <thead>
+                    <tr class="text-slate-500 text-left font-semibold uppercase tracking-wider">
+                        <th class="py-2">Customer ID</th>
+                        <th class="py-2">KYC Status</th>
+                        <th class="py-2 text-center">Credit Score</th>
+                        <th class="py-2">Occupation</th>
+                        <th class="py-2 text-right">Annual Income</th>
+                        <th class="py-2 text-center">Risk Tier</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-mono">
+                    {% for p in profiles %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="py-2.5 font-bold text-purple-700">
+                            <a href="{{ url_for('customer.view_customer', customer_id=p.customer_id) }}" class="hover:underline">
+                                {{ p.customer_id }}
+                            </a>
+                        </td>
+                        <td class="py-2.5">
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold
+                                {% if p.kyc_status == 'VERIFIED' %}bg-emerald-100 text-emerald-800
+                                {% elif p.kyc_status == 'PENDING' %}bg-amber-100 text-amber-800
+                                {% else %}bg-rose-100 text-rose-800{% endif %}">
+                                {{ p.kyc_status }}
+                            </span>
+                        </td>
+                        <td class="py-2.5 text-center font-bold text-slate-800">{{ p.credit_score }}</td>
+                        <td class="py-2.5 font-sans text-slate-700">{{ p.occupation }}</td>
+                        <td class="py-2.5 text-right text-slate-800">${{ "{:,.2f}".format(p.annual_income) }}</td>
+                        <td class="py-2.5 text-center">
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold
+                                {% if p.risk_rating == 'LOW' %}bg-emerald-50 text-emerald-700
+                                {% elif p.risk_rating == 'MEDIUM' %}bg-amber-50 text-amber-700
+                                {% else %}bg-rose-50 text-rose-700{% endif %}">
+                                {{ p.risk_rating }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Section 3 & 4: Local Ledger & Participant 2PC WAL -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Local Ledger -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                <h3 class="text-sm font-bold text-slate-900">Local Ledger (transactions)</h3>
+                <span class="text-xs text-slate-400 font-mono">Last 25 entries</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-100 text-xs">
+                    <thead>
+                        <tr class="text-slate-500 text-left font-semibold uppercase">
+                            <th class="py-1.5">Tx ID</th>
+                            <th class="py-1.5">Account</th>
+                            <th class="py-1.5">Type</th>
+                            <th class="py-1.5 text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 font-mono text-[11px]">
+                        {% for t in transactions %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-2 text-slate-600 truncate max-w-[100px]">{{ t.tx_id }}</td>
+                            <td class="py-2 font-medium">{{ t.account_number }}</td>
+                            <td class="py-2 font-semibold {% if t.type in ('CREDIT', 'DEPOSIT') %}text-emerald-600{% else %}text-rose-600{% endif %}">{{ t.type }}</td>
+                            <td class="py-2 text-right font-bold">${{ "{:,.2f}".format(t.amount) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="py-4 text-center text-slate-400">No transactions recorded.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Participant WAL -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                <h3 class="text-sm font-bold text-slate-900">Participant 2PC WAL (branch_wal)</h3>
+                <span class="text-xs text-slate-400 font-mono">Recovery State Log</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-100 text-xs">
+                    <thead>
+                        <tr class="text-slate-500 text-left font-semibold uppercase">
+                            <th class="py-1.5">2PC Tx ID</th>
+                            <th class="py-1.5">State</th>
+                            <th class="py-1.5">Account</th>
+                            <th class="py-1.5 text-right">Delta</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 font-mono text-[11px]">
+                        {% for w in wal_logs %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-2 text-slate-700 truncate max-w-[120px]">{{ w.tx_id }}</td>
+                            <td class="py-2">
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold
+                                    {% if w.state == 'COMMITTED' %}bg-emerald-100 text-emerald-800
+                                    {% elif w.state == 'ABORTED' %}bg-rose-100 text-rose-800
+                                    {% else %}bg-amber-100 text-amber-800{% endif %}">
+                                    {{ w.state }}
+                                </span>
+                            </td>
+                            <td class="py-2 text-slate-700">{{ w.account_number }}</td>
+                            <td class="py-2 text-right font-semibold">${{ "{:,.2f}".format(w.delta) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="py-4 text-center text-slate-400">No WAL entries logged yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

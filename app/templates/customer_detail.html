@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Customer 360 View: {{ customer.full_name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Breadcrumb & Header -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <a href="{{ url_for('customer.list_customers') }}" class="text-xs text-sky-600 hover:underline">&larr; Customers Directory</a>
+                <span class="text-slate-300">/</span>
+                <span class="text-xs font-mono font-bold text-slate-700">{{ customer.customer_id }}</span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 mt-1">{{ customer.full_name }}</h1>
+            <p class="text-xs text-slate-500 font-mono mt-0.5">Vertical Fragments Reconstructed across Coordinator and Branch {{ customer.primary_branch_id or 'N/A' }}</p>
+        </div>
+
+        <div class="text-right">
+            <span class="text-xs text-slate-400 uppercase tracking-wider block">Total Deposits Across Bank</span>
+            <span class="text-2xl font-bold text-emerald-600">${{ "{:,.2f}".format(total_wealth) }}</span>
+        </div>
+    </div>
+
+    <!-- Side-by-Side Vertical Fragments Visualization -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Vertical Fragment 1: Central Identity -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-amber-200 relative overflow-hidden">
+            <div class="absolute top-0 right-0 bg-amber-500 text-slate-950 font-mono text-[10px] font-bold px-3 py-1 rounded-bl-lg">
+                COORDINATOR DB
+            </div>
+            <div class="flex items-center space-x-2 mb-4">
+                <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900 text-sm">Fragment 1: Identity & Demographics</h3>
+                    <span class="text-[11px] text-slate-500 font-mono">central_coordinator.db &bull; customers_global</span>
+                </div>
+            </div>
+
+            <dl class="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                    <dt class="text-slate-400">Customer ID</dt>
+                    <dd class="font-mono font-bold text-slate-800 mt-0.5">{{ customer.customer_id }}</dd>
+                </div>
+                <div>
+                    <dt class="text-slate-400">Government ID</dt>
+                    <dd class="font-mono font-semibold text-slate-800 mt-0.5">{{ customer.gov_id_type }}: {{ customer.gov_id_number }}</dd>
+                </div>
+                <div>
+                    <dt class="text-slate-400">Email Address</dt>
+                    <dd class="font-medium text-slate-800 mt-0.5">{{ customer.email }}</dd>
+                </div>
+                <div>
+                    <dt class="text-slate-400">Phone</dt>
+                    <dd class="font-mono text-slate-800 mt-0.5">{{ customer.phone }}</dd>
+                </div>
+                <div class="col-span-2">
+                    <dt class="text-slate-400">Residential Address</dt>
+                    <dd class="text-slate-800 mt-0.5">{{ customer.home_address }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- Vertical Fragment 2: Local Branch Financial Profile -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-emerald-200 relative overflow-hidden">
+            <div class="absolute top-0 right-0 bg-emerald-500 text-white font-mono text-[10px] font-bold px-3 py-1 rounded-bl-lg">
+                BRANCH {{ customer.primary_branch_id or 'NODE' }} DB
+            </div>
+            <div class="flex items-center space-x-2 mb-4">
+                <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                    <i data-lucide="wallet" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900 text-sm">Fragment 2: Financial & Risk Profile</h3>
+                    <span class="text-[11px] text-slate-500 font-mono">branch_{{ customer.primary_branch_id or 'BR001' }}.db &bull; customers_local</span>
+                </div>
+            </div>
+
+            <dl class="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                    <dt class="text-slate-400">KYC Status</dt>
+                    <dd class="mt-0.5">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold
+                            {% if customer.kyc_status == 'VERIFIED' %}bg-emerald-100 text-emerald-800
+                            {% elif customer.kyc_status == 'PENDING' %}bg-amber-100 text-amber-800
+                            {% else %}bg-rose-100 text-rose-800{% endif %}">
+                            {{ customer.kyc_status }}
+                        </span>
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-slate-400">Credit Score</dt>
+                    <dd class="font-mono font-bold text-slate-800 text-sm mt-0.5">{{ customer.credit_score }} / 850</dd>
+                </div>
+                <div>
+                    <dt class="text-slate-400">Occupation</dt>
+                    <dd class="font-medium text-slate-800 mt-0.5">{{ customer.occupation }}</dd>
+                </div>
+                <div>
+                    <dt class="text-slate-400">Annual Income</dt>
+                    <dd class="font-mono font-bold text-emerald-700 mt-0.5">${{ "{:,.2f}".format(customer.annual_income or 0.0) }}</dd>
+                </div>
+                <div>
+                    <dt class="text-slate-400">Risk Assessment</dt>
+                    <dd class="mt-0.5">
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold
+                            {% if customer.risk_rating == 'LOW' %}bg-emerald-50 text-emerald-700
+                            {% elif customer.risk_rating == 'MEDIUM' %}bg-amber-50 text-amber-700
+                            {% else %}bg-rose-50 text-rose-700{% endif %}">
+                            {{ customer.risk_rating }} RISK
+                        </span>
+                    </dd>
+                </div>
+            </dl>
+
+            {% if session['user']['role'] in ('ADMIN', 'BRANCH_MANAGER') and customer.primary_branch_id %}
+            <form action="{{ url_for('customer.update_kyc', customer_id=customer.customer_id) }}" method="POST" class="mt-4 pt-3 border-t border-slate-100 flex items-center space-x-2 text-xs">
+                <input type="hidden" name="branch_id" value="{{ customer.primary_branch_id }}">
+                <span class="text-slate-500 font-semibold">Change KYC:</span>
+                <select name="kyc_status" class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs">
+                    <option value="VERIFIED" {% if customer.kyc_status == 'VERIFIED' %}selected{% endif %}>VERIFIED</option>
+                    <option value="PENDING" {% if customer.kyc_status == 'PENDING' %}selected{% endif %}>PENDING</option>
+                    <option value="REJECTED" {% if customer.kyc_status == 'REJECTED' %}selected{% endif %}>REJECTED</option>
+                </select>
+                <button type="submit" class="bg-slate-900 text-white px-2.5 py-1 rounded hover:bg-slate-800">Update</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Accounts across Branches (Horizontal Fragments Owned by this Customer) -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+            <div>
+                <h2 class="text-base font-bold text-slate-900">Accounts Across All Branch Databases</h2>
+                <p class="text-xs text-slate-500">Notice that a customer can own accounts horizontally fragmented across multiple distinct branch databases!</p>
+            </div>
+            <a href="{{ url_for('account.open_account') }}" class="text-xs text-sky-600 hover:underline font-semibold">+ Open Account</a>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-100 text-xs">
+                <thead>
+                    <tr class="text-slate-500 text-left font-semibold uppercase tracking-wider">
+                        <th class="py-2.5">Account Number</th>
+                        <th class="py-2.5">Branch Node</th>
+                        <th class="py-2.5">Account Type</th>
+                        <th class="py-2.5">Status</th>
+                        <th class="py-2.5 text-right">Balance</th>
+                        <th class="py-2.5 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-mono">
+                    {% for a in accounts %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="py-2.5 font-bold text-sky-700">{{ a.account_number }}</td>
+                        <td class="py-2.5">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold
+                                {% if a.branch_id == 'BR001' %}bg-sky-100 text-sky-800
+                                {% elif a.branch_id == 'BR002' %}bg-emerald-100 text-emerald-800
+                                {% else %}bg-purple-100 text-purple-800{% endif %}">
+                                {{ a.branch_name }} ({{ a.branch_id }})
+                            </span>
+                        </td>
+                        <td class="py-2.5"><span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px]">{{ a.account_type }}</span></td>
+                        <td class="py-2.5"><span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">{{ a.status }}</span></td>
+                        <td class="py-2.5 text-right font-bold text-slate-900">${{ "{:,.2f}".format(a.balance) }}</td>
+                        <td class="py-2.5 text-center font-sans">
+                            <a href="{{ url_for('account.view_account', account_number=a.account_number) }}" class="text-sky-600 hover:underline font-medium">Manage &rarr;</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="py-4 text-center text-slate-400 font-sans">No accounts open for this customer yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

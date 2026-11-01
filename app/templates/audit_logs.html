@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}System Audit Trail{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">System Audit Trail</h1>
+            <p class="text-sm text-slate-500">Immutable chronological log of all banking operations, transfers, and security events.</p>
+        </div>
+        <span class="text-xs font-mono text-slate-400">{{ logs|length }} Audit Events</span>
+    </div>
+
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-100 text-xs font-mono">
+                <thead>
+                    <tr class="text-slate-500 text-left font-semibold uppercase tracking-wider text-[10px]">
+                        <th class="py-2.5">ID</th>
+                        <th class="py-2.5">Timestamp</th>
+                        <th class="py-2.5">Actor</th>
+                        <th class="py-2.5">Role</th>
+                        <th class="py-2.5">Action</th>
+                        <th class="py-2.5">Scope</th>
+                        <th class="py-2.5 font-sans">Details</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-[11px]">
+                    {% for l in logs %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="py-2 text-slate-400">#{{ l.log_id }}</td>
+                        <td class="py-2 text-slate-500 whitespace-nowrap">{{ l.timestamp }}</td>
+                        <td class="py-2 font-bold text-slate-800">{{ l.actor_username }}</td>
+                        <td class="py-2">
+                            <span class="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 text-[10px]">{{ l.actor_role }}</span>
+                        </td>
+                        <td class="py-2 font-bold text-sky-700">{{ l.action }}</td>
+                        <td class="py-2"><span class="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 text-[10px]">{{ l.branch_id }}</span></td>
+                        <td class="py-2 font-sans text-slate-700">{{ l.details }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

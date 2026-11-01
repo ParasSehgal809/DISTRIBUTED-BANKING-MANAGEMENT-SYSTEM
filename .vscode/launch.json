@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Distributed Banking System",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/app.py",
+            "console": "integratedTerminal",
+            "env": {
+                "FLASK_ENV": "development",
+                "FLASK_DEBUG": "1",
+                "PYTHONUNBUFFERED": "1"
+            },
+            "justMyCode": true
+        },
+        {
+            "name": "Run ADBMS Automated Tests",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/run_all_tests.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}
